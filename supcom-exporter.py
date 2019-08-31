@@ -211,7 +211,7 @@ class scm_vertex :
     uv2 = []
     bone_index = []
 
-    def __init__(self, pos , no , uv1, bone_index):
+    def __init__(self, pos , no , uv1, bone_index, smoothEdgesList):
 
         self.position = pos
         self.normal   = no
@@ -223,6 +223,7 @@ class scm_vertex :
         self.uvc = 1
         self.uv1 = uv1
         self.uv2 = uv1# Vector(0,0) #uv1 #better results with copy ... strange, where is the use of that?
+        self.smoothEdges = smoothEdgesList
 
         self.bone_index = bone_index
 
@@ -375,8 +376,15 @@ class scm_mesh :
             vertind = 0
             for vert in self.vertices :
                 if nvert.uv1 == vert.uv1 and nvert.position == vert.position :
-                    break    #found vert in list keep that index
-                vertind += 1 #hmm not that one
+                    #compare the lists of smooth edges. if they share an edge, then they need to be merged.
+                    shouldMerge = 0
+                    for edge in nvert.smoothEdges :
+                        if edge in vert.smoothEdges :
+                            #print ("smooth edge found, merging")
+                            shouldMerge = 1
+                    if shouldMerge == 1 :
+                        break    #found vert in list keep that index, and merge the vertices
+                vertind += 1 #hmm not that one, dont merge
 
             if vertind == len(self.vertices)  :
                 self.vertices.append( nvert )
@@ -814,6 +822,14 @@ def make_scm(arm_obj):
 
         mesh_obj.data.update (calc_tessface=True)
         bmesh_data = mesh_obj.data
+        
+        # Build lookup dictionary for edge keys to edges
+        edges = bmesh_data.edges
+        face_edge_map = {ek: edges[i] for i, ek in enumerate(bmesh_data.edge_keys)}
+        
+        # Build lookup dictionary for edge keys to edges
+        edges = bmesh_data.edges
+        face_edge_map = {ek: edges[i] for i, ek in enumerate(bmesh_data.edge_keys)}
 
         if not bmesh_data.tessface_uv_textures :
             my_popup("Mesh has no texture values -> Please set your UV!")
@@ -920,8 +936,20 @@ def make_scm(arm_obj):
                     return
                 
                 v_uv1 = Vector((my_uv[0], 1.0 - my_uv[1]))
+                
+                #find if the vertex is sharp or not so it can be excluded from merging later
+                v_smoothEdgeList = []
+                
+                for ek in face.edge_keys :
+                    edge = face_edge_map[ek]
+                    if not edge.use_edge_sharp :
+                        #print ("sharp edge found")
+                        for sharpVert in edge.vertices :
+                            #print ("vertexID", sharpVert, "value of vertex.index", vertex.index)
+                            if vertex.index == sharpVert :
+                                v_smoothEdgeList.append( ek )
 
-                vertList.append( scm_vertex( v_pos, v_nor, v_uv1 , v_boneIndex) )
+                vertList.append( scm_vertex( v_pos, v_nor, v_uv1, v_boneIndex, v_smoothEdgeList) )
 
             if len(vertList) > 3:
                 newFace = qFace()
