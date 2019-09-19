@@ -30,6 +30,9 @@
 #
 # 0.4.0  2014-07-13 Oygron   Script ported to Blender 2.71
 #
+# 0.4.1  2019-09-19 [e]Exotic_Retard
+#               support for smooth and hard edges added
+#               support for multiple animations added
 #
 # Todo
 #   - GUI improvements
@@ -48,8 +51,8 @@
 bl_info = {
     "name": "Supcom Exporter",
     "author": "dan & Brent & Oygron",
-    "version": (0,4,0),
-    "blender": (2, 71, 0),
+    "version": (0,4,1),
+    "blender": (2, 79, 0),
     "location": "File -> Export",
     "description": "Exports Supcom files",
     "warning": "",
