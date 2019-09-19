@@ -1110,28 +1110,7 @@ def export_scm(outdir):
 
     #xy_to_xz_transform.resize_4x4()
 
-    scene = bpy.context.scene
-
-    # Get Selected object(s)
-    selected_objects = bpy.context.selected_objects
-
-    # Priority to selected armature
-    arm_obj = None
-    for obj in selected_objects:
-        if obj.type == "ARMATURE":
-            arm_obj = obj
-            break
-
-    # Is there one armature? Take this one
-    if arm_obj == None :
-        for obj in scene.objects:
-            if obj.type == "ARMATURE":
-                arm_obj = obj
-                break
-
-    if arm_obj == None:
-        my_popup("Error: No armature detected. If exists but not detected, please select your armature.")
-        return
+    arm_obj = find_armature()
 
     # this defines the ARMATURE_SPACE.
     # all bones in the armature are positioned relative to this space.
@@ -1155,25 +1134,14 @@ def export_scm(outdir):
     loc_filename = arm_obj.name + '.scm'
     my_popup_info("Object saved to " + loc_filename)
 
-
-
-def export_sca(outdir):
-    global VERSION, USER_INFO
-    global MArmatureWorld
-    global xy_to_xz_transform
+def find_armature():
+    scene = bpy.context.scene #TODO:prioritise visible objects over this
 
     bpy.ops.object.mode_set(mode='OBJECT')
-
-
-    xy_to_xz_transform.resize_4x4()
-
-    scene = bpy.context.scene
-
     # Get Selected object(s)
     selected_objects = bpy.context.selected_objects
 
-
-    # Priority to selected armature
+    # Prioritise selected armature
     arm_obj = None
     for obj in selected_objects:
         if obj.type == "ARMATURE":
@@ -1190,6 +1158,20 @@ def export_sca(outdir):
     if arm_obj == None:
         my_popup("Error: No armature detected. If exists but not detected, please select your armature.")
         return
+    return arm_obj
+
+
+def export_sca(outdir):
+    global VERSION, USER_INFO
+    global MArmatureWorld
+    global xy_to_xz_transform
+
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+    xy_to_xz_transform.resize_4x4()
+
+    arm_obj = find_armature()
 
     # this defines the ARMATURE_SPACE.
     # all bones in the armature are positioned relative to this space.
@@ -1197,9 +1179,11 @@ def export_sca(outdir):
 
 
     # SCA
+    # This plays through every action and records the relevant bone positions every frame, then saves that to sca
     for action in bpy.data.actions:
-        #action[0] = the key,  action[1] = the dictionary
-        ####maybe this could help?
+        #set active action
+        arm_obj.animation_data.action = action
+        
         animation = make_sca(arm_obj, action)
         animation.save(outdir + action.name + ".sca")
         
